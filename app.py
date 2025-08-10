@@ -63,7 +63,6 @@ def update_daily_fictitious_data():
     return data
 
 # Chame as funções de inicialização diretamente no nível superior do módulo
-# Elas serão executadas quando o Gunicorn importar 'app.py'
 load_data()
 update_daily_fictitious_data()
 
@@ -97,8 +96,12 @@ def admin_required(f):
     return decorated_function
 
 @app.route('/')
-def serve_index():
-    return send_from_directory('.', 'index.html')
+def serve_public_dashboard():
+    return send_from_directory('.', 'public-dashboard.html')
+
+@app.route('/admin')
+def serve_admin_panel():
+    return send_from_directory('.', 'admin-panel.html')
 
 @app.route('/api/dashboard', methods=['GET'])
 def get_dashboard_data():
@@ -194,6 +197,3 @@ def admin_login():
        credentials.get('password') == data['admin_credentials']['password']:
         return jsonify({"message": "Login successful", "token": ADMIN_TOKEN}), 200
     return jsonify({"message": "Invalid credentials"}), 401
-
-# Removido o bloco if __name__ == '__main__':
-# O Gunicorn irá importar a instância 'app' diretamente
