@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Raspadinhas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate-50 */
+            color: #1e293b; /* Slate-800 */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+        }
+        .status-active {
+            color: #16a34a; /* Green-600 */
+            font-weight: 600;
+        }
+        .status-inactive {
+            color: #dc2626; /* Red-600 */
+            font-weight: 600;
+        }
+        .status-maintenance {
+            color: #f59e0b; /* Amber-500 */
+            font-weight: 600;
+        }
+        .good-moment-banner {
+            background-color: #dcfce7; /* Green-100 */
+            color: #16a34a; /* Green-600 */
+            border: 1px solid #86efad; /* Green-300 */
+        }
+        .not-good-moment-banner {
+            background-color: #fee2e2; /* Red-100 */
+            color: #dc2626; /* Red-600 */
+            border: 1px solid #fca5a5; /* Red-300 */
+        }
+        .admin-panel {
+            display: none; /* Hidden by default */
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="bg-white shadow-sm py-4">
+        <div class="container flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2 md:mb-0">Painel de Raspadinhas</h1>
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                <span>Casas Cadastradas: <span id="total-houses" class="font-semibold">0</span></span>
+                <span>Ganhadores Hoje: <span id="daily-winners-summary" class="font-semibold">0</span></span>
+                <span>Horário Atual: <span id="current-time" class="font-semibold"></span></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mt-6">
+        <section id="admin-login-section" class="card mb-6 max-w-md mx-auto">
+            <h2 class="text-xl font-semibold mb-4">Acesso Administrativo</h2>
+            <form id="admin-login-form" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">Usuário</label>
+                    <input type="text" id="username" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+                    <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Entrar</button>
+                <p id="login-message" class="text-sm text-red-600 mt-2"></p>
+            </form>
+        </section>
+
+        <section id="dashboard-content" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2">Saldo Diário de Distribuição</h2>
+                    <p class="text-3xl font-bold text-green-600" id="daily-balance">R$ 0,00</p>
+                    <p class="text-sm text-gray-500 mt-1">Valor fictício que muda automaticamente todo dia.</p>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2">Pessoas que Ganharam Hoje</h2>
+                    <p class="text-3xl font-bold text-blue-600" id="daily-winners">0</p>
+                    <p class="text-sm text-gray-500 mt-1">Dado falso, atualizado diariamente.</p>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2">Melhores Horários para Jogar</h2>
+                    <p class="text-xl font-bold text-purple-600" id="best-times">N/A</p>
+                    <p class="text-sm text-gray-500 mt-1">Dados fictícios.</p>
+                </div>
+            </div>
+
+            <div id="good-moment-banner" class="p-4 rounded-lg text-center font-semibold text-lg mb-6 hidden">
+                
+            </div>
+
+            <section class="card mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Link Recomendado do Momento</h2>
+                <div id="recommended-link-card" class="flex flex-col md:flex-row items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex-1 mb-4 md:mb-0">
+                        <p class="text-lg font-bold text-yellow-800" id="recommended-house-name">Nenhum link recomendado no momento.</p>
+                        <p class="text-sm text-yellow-700 truncate" id="recommended-link-url"></p>
+                    </div>
+                    <button id="play-now-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Jogar Agora
+                    </button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Lista de Links de Raspadinhas</h2>
+                <div id="scratch-links-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <p id="no-links-message" class="col-span-full text-center text-gray-500">Nenhum link cadastrado.</p>
+                </div>
+            </section>
+        </section>
+
+        <section id="admin-panel" class="admin-panel mt-6">
+            <div class="card mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Painel Administrativo</h2>
+                <button id="add-link-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md mb-4">Adicionar Novo Link</button>
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Gerenciar Links</h3>
+                <div id="admin-links-list" class="space-y-3">
+                    
+                    <p id="no-admin-links-message" class="text-center text-gray-500">Nenhum link cadastrado para gerenciar.</p>
+                </div>
+
+                <h3 class="text-lg font-semibold text-gray-800 mt-6 mb-3">Configurações de Dados Diários</h3>
+                <form id="daily-data-form" class="space-y-4">
+                    <div>
+                        <label for="admin-balance" class="block text-sm font-medium text-gray-700">Saldo Diário</label>
+                        <input type="number" step="0.01" id="admin-balance" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="admin-winners" class="block text-sm font-medium text-gray-700">Ganhadores Diários</label>
+                        <input type="number" id="admin-winners" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="admin-best-times" class="block text-sm font-medium text-gray-700">Melhores Horários</label>
+                        <input type="text" id="admin-best-times" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="admin-good-moment" class="block text-sm font-medium text-gray-700">Bom Momento para Jogar</label>
+                        <select id="admin-good-moment" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                            <option value="true">Sim</option>
+                            <option value="false">Não</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="admin-recommended-link" class="block text-sm font-medium text-gray-700">Link Recomendado</label>
+                        <select id="admin-recommended-link" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                            <option value="">Nenhum</option>
+                            
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">Atualizar Dados Diários</button>
+                    <p id="daily-data-message" class="text-sm text-green-600 mt-2"></p>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <div id="link-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modal-title" class="text-xl font-semibold mb-4">Adicionar Novo Link</h2>
+            <form id="link-form" class="space-y-4">
+                <input type="hidden" id="link-id">
+                <div>
+                    <label for="house-name" class="block text-sm font-medium text-gray-700">Nome da Casa</label>
+                    <input type="text" id="house-name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="link-url" class="block text-sm font-medium text-gray-700">Link</label>
+                    <input type="url" id="link-url" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="link-status" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select id="link-status" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        <option value="Ativo">Ativo</option>
+                        <option value="Inativo">Inativo</option>
+                        <option value="Manutenção">Manutenção</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Salvar Link</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = '/api';
+        let adminToken = localStorage.getItem('adminToken');
+
+        const adminLoginSection = document.getElementById('admin-login-section');
+        const dashboardContent = document.getElementById('dashboard-content');
+        const adminPanel = document.getElementById('admin-panel');
+        const loginMessage = document.getElementById('login-message');
+        const dailyDataMessage = document.getElementById('daily-data-message');
+
+        const totalHousesSpan = document.getElementById('total-houses');
+        const dailyWinnersSummarySpan = document.getElementById('daily-winners-summary');
+        const currentTimeSpan = document.getElementById('current-time');
+
+        const dailyBalanceP = document.getElementById('daily-balance');
+        const dailyWinnersP = document.getElementById('daily-winners');
+        const bestTimesP = document.getElementById('best-times');
+        const goodMomentBanner = document.getElementById('good-moment-banner');
+
+        const recommendedLinkCard = document.getElementById('recommended-link-card');
+        const recommendedHouseNameP = document.getElementById('recommended-house-name');
+        const recommendedLinkUrlP = document.getElementById('recommended-link-url');
+        const playNowButton = document.getElementById('play-now-button');
+
+        const scratchLinksListDiv = document.getElementById('scratch-links-list');
+        const noLinksMessage = document.getElementById('no-links-message');
+        const noAdminLinksMessage = document.getElementById('no-admin-links-message');
+
+        const linkModal = document.getElementById('link-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const linkForm = document.getElementById('link-form');
+        const linkIdInput = document.getElementById('link-id');
+        const houseNameInput = document.getElementById('house-name');
+        const linkUrlInput = document.getElementById('link-url');
+        const linkStatusSelect = document.getElementById('link-status');
+        const closeButton = document.querySelector('.close-button');
+        const addLinkButton = document.getElementById('add-link-button');
+        const adminLinksListDiv = document.getElementById('admin-links-list');
+
+        const dailyDataForm = document.getElementById('daily-data-form');
+        const adminBalanceInput = document.getElementById('admin-balance');
+        const adminWinnersInput = document.getElementById('admin-winners');
+        const adminBestTimesInput = document.getElementById('admin-best-times');
+        const adminGoodMomentSelect = document.getElementById('admin-good-moment');
+        const adminRecommendedLinkSelect = document.getElementById('admin-recommended-link');
+
+        // --- Utility Functions ---
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeSpan.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function getAuthHeaders() {
+            return adminToken ? { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+        }
+
+        function checkAuthStatus() {
+            if (adminToken) {
+                adminLoginSection.classList.add('hidden');
+                dashboardContent.classList.remove('hidden');
+                adminPanel.classList.remove('admin-panel'); // Remove display:none
+                adminPanel.classList.add('block'); // Add display:block
+                fetchDashboardData();
+                fetchAdminLinks();
+                fetchAdminDailyData();
+            } else {
+                adminLoginSection.classList.remove('hidden');
+                dashboardContent.classList.add('hidden');
+                adminPanel.classList.remove('block');
+                adminPanel.classList.add('admin-panel'); // Add display:none
+            }
+        }
+
+        // --- Fetching and Rendering Data ---
+        async function fetchDashboardData() {
+            try {
+                const response = await fetch(`${BASE_URL}/dashboard`);
+                if (!response.ok) throw new Error('Failed to fetch dashboard data');
+                const data = await response.json();
+
+                totalHousesSpan.textContent = data.total_houses;
+                dailyWinnersSummarySpan.textContent = data.daily_data.winners;
+
+                dailyBalanceP.textContent = formatCurrency(data.daily_data.balance);
+                dailyWinnersP.textContent = data.daily_data.winners;
+                bestTimesP.textContent = data.daily_data.best_times;
+
+                // Good Moment Banner
+                goodMomentBanner.classList.remove('hidden', 'good-moment-banner', 'not-good-moment-banner');
+                if (data.daily_data.good_moment) {
+                    goodMomentBanner.classList.add('good-moment-banner');
+                    goodMomentBanner.innerHTML = '<p>🎉 É um <strong>Bom momento para jogar!</strong> As chances estão a seu favor!</p>';
+                } else {
+                    goodMomentBanner.classList.add('not-good-moment-banner');
+                    goodMomentBanner.innerHTML = '<p>⚠️ <strong>Não é o momento ideal.</strong> Considere esperar um pouco.</p>';
+                }
+
+                // Recommended Link
+                const recommendedLink = data.scratch_links.find(link => link.is_recommended);
+                if (recommendedLink) {
+                    recommendedHouseNameP.textContent = recommendedLink.house_name;
+                    recommendedLinkUrlP.textContent = recommendedLink.link;
+                    playNowButton.disabled = false;
+                    playNowButton.onclick = () => window.open(recommendedLink.link, '_blank');
+                } else {
+                    recommendedHouseNameP.textContent = 'Nenhum link recomendado no momento.';
+                    recommendedLinkUrlP.textContent = '';
+                    playNowButton.disabled = true;
+                    playNowButton.onclick = null;
+                }
+
+                renderScratchLinks(data.scratch_links);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            }
+        }
+
+        function renderScratchLinks(links) {
+            scratchLinksListDiv.innerHTML = '';
+            if (links.length === 0) {
+                noLinksMessage.classList.remove('hidden');
+                return;
+            }
+            noLinksMessage.classList.add('hidden');
+
+            links.forEach(link => {
+                const statusClass = link.status === 'Ativo' ? 'status-active' :
+                                    link.status === 'Inativo' ? 'status-inactive' :
+                                    'status-maintenance';
+                const linkElement = `
+                    <div class="card flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">${link.house_name}</h3>
+                            <p class="text-sm text-gray-600 truncate mb-2">${link.link}</p>
+                            <p class="text-sm">Status: <span class="${statusClass}">${link.status}</span></p>
+                        </div>
+                        <a href="${link.link}" target="_blank" class="mt-4 inline-block bg-blue-500 hover:bg-blue-600 text-white text-center py-2 px-4 rounded-md text-sm font-medium">
+                            Visitar
+                        </a>
+                    </div>
+                `;
+                scratchLinksListDiv.innerHTML += linkElement;
+            });
+        }
+
+        async function fetchAdminLinks() {
+            try {
+                const response = await fetch(`${BASE_URL}/links`, { headers: getAuthHeaders() });
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        alert('Sessão expirada ou não autorizada. Por favor, faça login novamente.');
+                        logoutAdmin();
+                        return;
+                    }
+                    throw new Error('Failed to fetch admin links');
+                }
+                const links = await response.json();
+                renderAdminLinks(links);
+                populateRecommendedLinkSelect(links);
+            } catch (error) {
+                console.error('Error fetching admin links:', error);
+            }
+        }
+
+        function renderAdminLinks(links) {
+            adminLinksListDiv.innerHTML = '';
+            if (links.length === 0) {
+                noAdminLinksMessage.classList.remove('hidden');
+                return;
+            }
+            noAdminLinksMessage.classList.add('hidden');
+
+            links.forEach(link => {
+                const statusClass = link.status === 'Ativo' ? 'text-green-600' :
+                                    link.status === 'Inativo' ? 'text-red-600' :
+                                    'text-yellow-600';
+                const linkElement = `
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
+                        <div class="flex-1 mb-2 md:mb-0">
+                            <p class="font-semibold text-gray-900">${link.house_name}</p>
+                            <p class="text-sm text-gray-600 truncate">${link.link}</p>
+                            <p class="text-xs ${statusClass}">Status: ${link.status}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button data-id="${link.id}" class="edit-link-button bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-1 px-3 rounded-md">Editar</button>
+                            <button data-id="${link.id}" class="delete-link-button bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-3 rounded-md">Remover</button>
+                        </div>
+                    </div>
+                `;
+                adminLinksListDiv.innerHTML += linkElement;
+            });
+
+            document.querySelectorAll('.edit-link-button').forEach(button => {
+                button.addEventListener('click', (e) => openLinkModalForEdit(e.target.dataset.id));
+            });
+            document.querySelectorAll('.delete-link-button').forEach(button => {
+                button.addEventListener('click', (e) => deleteLink(e.target.dataset.id));
+            });
+        }
+
+        async function fetchAdminDailyData() {
+            try {
+                const response = await fetch(`${BASE_URL}/daily-data`, { headers: getAuthHeaders() });
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        alert('Sessão expirada ou não autorizada. Por favor, faça login novamente.');
+                        logoutAdmin();
+                        return;
+                    }
+                    throw new Error('Failed to fetch daily data for admin');
+                }
+                const data = await response.json();
+                adminBalanceInput.value = data.balance;
+                adminWinnersInput.value = data.winners;
+                adminBestTimesInput.value = data.best_times;
+                adminGoodMomentSelect.value = data.good_moment.toString();
+                adminRecommendedLinkSelect.value = data.recommended_link_id || '';
+            } catch (error) {
+                console.error('Error fetching admin daily data:', error);
+            }
+        }
+
+        function populateRecommendedLinkSelect(links) {
+            adminRecommendedLinkSelect.innerHTML = '<option value="">Nenhum</option>';
+            links.forEach(link => {
+                const option = document.createElement('option');
+                option.value = link.id;
+                option.textContent = link.house_name;
+                adminRecommendedLinkSelect.appendChild(option);
+            });
+        }
+
+        // --- Admin Actions ---
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = e.target.username.value;
+            const password = e.target.password.value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    adminToken = data.token;
+                    localStorage.setItem('adminToken', adminToken);
+                    loginMessage.textContent = '';
+                    checkAuthStatus();
+                } else {
+                    loginMessage.textContent = data.message || 'Erro de login.';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                loginMessage.textContent = 'Erro ao conectar ao servidor.';
+            }
+        });
+
+        function logoutAdmin() {
+            adminToken = null;
+            localStorage.removeItem('adminToken');
+            checkAuthStatus();
+        }
+
+        addLinkButton.addEventListener('click', () => {
+            modalTitle.textContent = 'Adicionar Novo Link';
+            linkIdInput.value = '';
+            linkForm.reset();
+            linkModal.style.display = 'flex';
+        });
+
+        closeButton.addEventListener('click', () => {
+            linkModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == linkModal) {
+                linkModal.style.display = 'none';
+            }
+        });
+
+        linkForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = linkIdInput.value;
+            const house_name = houseNameInput.value;
+            const link = linkUrlInput.value;
+            const status = linkStatusSelect.value;
+
+            const linkData = { house_name, link, status };
+            let url = `${BASE_URL}/links`;
+            let method = 'POST';
+
+            if (id) { // Editing existing link
+                url = `${BASE_URL}/links/${id}`;
+                method = 'PUT';
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(linkData)
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        alert('Sessão expirada ou não autorizada. Por favor, faça login novamente.');
+                        logoutAdmin();
+                        return;
+                    }
+                    throw new Error(`Failed to ${id ? 'update' : 'add'} link`);
+                }
+
+                linkModal.style.display = 'none';
+                fetchDashboardData(); // Refresh dashboard
+                fetchAdminLinks(); // Refresh admin list
+            } catch (error) {
+                console.error(`Error ${id ? 'updating' : 'adding'} link:`, error);
+                alert(`Erro ao ${id ? 'atualizar' : 'adicionar'} link.`);
+            }
+        });
+
+        async function openLinkModalForEdit(id) {
+            try {
+                const response = await fetch(`${BASE_URL}/links`, { headers: getAuthHeaders() });
+                if (!response.ok) throw new Error('Failed to fetch links for edit');
+                const links = await response.json();
+                const linkToEdit = links.find(link => link.id === id);
+
+                if (linkToEdit) {
+                    modalTitle.textContent = 'Editar Link';
+                    linkIdInput.value = linkToEdit.id;
+                    houseNameInput.value = linkToEdit.house_name;
+                    linkUrlInput.value = linkToEdit.link;
+                    linkStatusSelect.value = linkToEdit.status;
+                    linkModal.style.display = 'flex';
+                } else {
+                    alert('Link não encontrado.');
+                }
+            } catch (error) {
+                console.error('Error opening edit modal:', error);
+                alert('Erro ao carregar dados do link para edição.');
+            }
+        }
+
+        async function deleteLink(id) {
+            if (!confirm('Tem certeza que deseja remover este link?')) {
+                return;
+            }
+            try {
+                const response = await fetch(`${BASE_URL}/links/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        alert('Sessão expirada ou não autorizada. Por favor, faça login novamente.');
+                        logoutAdmin();
+                        return;
+                    }
+                    throw new Error('Failed to delete link');
+                }
+
+                fetchDashboardData(); // Refresh dashboard
+                fetchAdminLinks(); // Refresh admin list
+            } catch (error) {
+                console.error('Error deleting link:', error);
+                alert('Erro ao remover link.');
+            }
+        }
+
+        dailyDataForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const updatedDailyData = {
+                balance: parseFloat(adminBalanceInput.value),
+                winners: parseInt(adminWinnersInput.value),
+                best_times: adminBestTimesInput.value,
+                good_moment: adminGoodMomentSelect.value === 'true',
+                recommended_link_id: adminRecommendedLinkSelect.value || null
+            };
+
+            try {
+                const response = await fetch(`${BASE_URL}/daily-data`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(updatedDailyData)
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        alert('Sessão expirada ou não autorizada. Por favor, faça login novamente.');
+                        logoutAdmin();
+                        return;
+                    }
+                    throw new Error('Failed to update daily data');
+                }
+
+                dailyDataMessage.textContent = 'Dados diários atualizados com sucesso!';
+                dailyDataMessage.classList.remove('text-red-600');
+                dailyDataMessage.classList.add('text-green-600');
+                setTimeout(() => dailyDataMessage.textContent = '', 3000);
+                fetchDashboardData(); // Refresh dashboard
+            } catch (error) {
+                console.error('Error updating daily data:', error);
+                dailyDataMessage.textContent = 'Erro ao atualizar dados diários.';
+                dailyDataMessage.classList.remove('text-green-600');
+                dailyDataMessage.classList.add('text-red-600');
+            }
+        });
+
+        // --- Initial Load and Intervals ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000); // Update time every second
+            checkAuthStatus(); // Check if admin is already logged in
+        });
+    </script>
+</body>
+</html>
