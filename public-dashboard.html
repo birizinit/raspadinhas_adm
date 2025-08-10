@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Raspadinhas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate-50 */
+            color: #1e293b; /* Slate-800 */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+        }
+        .status-active {
+            color: #16a34a; /* Green-600 */
+            font-weight: 600;
+        }
+        .status-inactive {
+            color: #dc2626; /* Red-600 */
+            font-weight: 600;
+        }
+        .status-maintenance {
+            color: #f59e0b; /* Amber-500 */
+            font-weight: 600;
+        }
+        .good-moment-banner {
+            background-color: #dcfce7; /* Green-100 */
+            color: #16a34a; /* Green-600 */
+            border: 1px solid #86efad; /* Green-300 */
+        }
+        .not-good-moment-banner {
+            background-color: #fee2e2; /* Red-100 */
+            color: #dc2626; /* Red-600 */
+            border: 1px solid #fca5a5; /* Red-300 */
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="bg-white shadow-sm py-4">
+        <div class="container flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2 md:mb-0">Painel de Raspadinhas</h1>
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                <span>Casas Cadastradas: <span id="total-houses" class="font-semibold">0</span></span>
+                <span>Ganhadores Hoje: <span id="daily-winners-summary" class="font-semibold">0</span></span>
+                <span>Horário Atual: <span id="current-time" class="font-semibold"></span></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mt-6">
+        <section id="dashboard-content">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2">Saldo Diário de Distribuição</h2>
+                    <p class="text-3xl font-bold text-green-600" id="daily-balance">R$ 0,00</p>
+                    <p class="text-sm text-gray-500 mt-1">Valor fictício que muda automaticamente todo dia.</p>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2">Pessoas que Ganharam Hoje</h2>
+                    <p class="text-3xl font-bold text-blue-600" id="daily-winners">0</p>
+                    <p class="text-sm text-gray-500 mt-1">Dado falso, atualizado diariamente.</p>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2">Melhores Horários para Jogar</h2>
+                    <p class="text-xl font-bold text-purple-600" id="best-times">N/A</p>
+                    <p class="text-sm text-gray-500 mt-1">Dados fictícios.</p>
+                </div>
+            </div>
+
+            <div id="good-moment-banner" class="p-4 rounded-lg text-center font-semibold text-lg mb-6 hidden">
+                
+            </div>
+
+            <section class="card mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Link Recomendado do Momento</h2>
+                <div id="recommended-link-card" class="flex flex-col md:flex-row items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex-1 mb-4 md:mb-0">
+                        <p class="text-lg font-bold text-yellow-800" id="recommended-house-name">Nenhum link recomendado no momento.</p>
+                        <p class="text-sm text-yellow-700 truncate" id="recommended-link-url"></p>
+                    </div>
+                    <button id="play-now-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Jogar Agora
+                    </button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Lista de Links de Raspadinhas</h2>
+                <div id="scratch-links-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <p id="no-links-message" class="col-span-full text-center text-gray-500">Nenhum link cadastrado.</p>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const BASE_URL = '/api'; // Continua sendo relativo para o mesmo domínio
+        
+        const totalHousesSpan = document.getElementById('total-houses');
+        const dailyWinnersSummarySpan = document.getElementById('daily-winners-summary');
+        const currentTimeSpan = document.getElementById('current-time');
+
+        const dailyBalanceP = document.getElementById('daily-balance');
+        const dailyWinnersP = document.getElementById('daily-winners');
+        const bestTimesP = document.getElementById('best-times');
+        const goodMomentBanner = document.getElementById('good-moment-banner');
+
+        const recommendedLinkCard = document.getElementById('recommended-link-card');
+        const recommendedHouseNameP = document.getElementById('recommended-house-name');
+        const recommendedLinkUrlP = document.getElementById('recommended-link-url');
+        const playNowButton = document.getElementById('play-now-button');
+
+        const scratchLinksListDiv = document.getElementById('scratch-links-list');
+        const noLinksMessage = document.getElementById('no-links-message');
+
+        // --- Utility Functions ---
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeSpan.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // --- Fetching and Rendering Data ---
+        async function fetchDashboardData() {
+            try {
+                const response = await fetch(`${BASE_URL}/dashboard`);
+                if (!response.ok) throw new Error('Failed to fetch dashboard data');
+                const data = await response.json();
+
+                totalHousesSpan.textContent = data.total_houses;
+                dailyWinnersSummarySpan.textContent = data.daily_data.winners;
+
+                dailyBalanceP.textContent = formatCurrency(data.daily_data.balance);
+                dailyWinnersP.textContent = data.daily_data.winners;
+                bestTimesP.textContent = data.daily_data.best_times;
+
+                // Good Moment Banner
+                goodMomentBanner.classList.remove('hidden', 'good-moment-banner', 'not-good-moment-banner');
+                if (data.daily_data.good_moment) {
+                    goodMomentBanner.classList.add('good-moment-banner');
+                    goodMomentBanner.innerHTML = '<p>🎉 É um <strong>Bom momento para jogar!</strong> As chances estão a seu favor!</p>';
+                } else {
+                    goodMomentBanner.classList.add('not-good-moment-banner');
+                    goodMomentBanner.innerHTML = '<p>⚠️ <strong>Não é o momento ideal.</strong> Considere esperar um pouco.</p>';
+                }
+
+                // Recommended Link
+                const recommendedLink = data.scratch_links.find(link => link.is_recommended);
+                if (recommendedLink) {
+                    recommendedHouseNameP.textContent = recommendedLink.house_name;
+                    recommendedLinkUrlP.textContent = recommendedLink.link;
+                    playNowButton.disabled = false;
+                    playNowButton.onclick = () => window.open(recommendedLink.link, '_blank');
+                } else {
+                    recommendedHouseNameP.textContent = 'Nenhum link recomendado no momento.';
+                    recommendedLinkUrlP.textContent = '';
+                    playNowButton.disabled = true;
+                    playNowButton.onclick = null;
+                }
+
+                renderScratchLinks(data.scratch_links);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            }
+        }
+
+        function renderScratchLinks(links) {
+            scratchLinksListDiv.innerHTML = '';
+            if (links.length === 0) {
+                noLinksMessage.classList.remove('hidden');
+                return;
+            }
+            noLinksMessage.classList.add('hidden');
+
+            links.forEach(link => {
+                const statusClass = link.status === 'Ativo' ? 'status-active' :
+                                    link.status === 'Inativo' ? 'status-inactive' :
+                                    'status-maintenance';
+                const linkElement = `
+                    <div class="card flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">${link.house_name}</h3>
+                            <p class="text-sm text-gray-600 truncate mb-2">${link.link}</p>
+                            <p class="text-sm">Status: <span class="${statusClass}">${link.status}</span></p>
+                        </div>
+                        <a href="${link.link}" target="_blank" class="mt-4 inline-block bg-blue-500 hover:bg-blue-600 text-white text-center py-2 px-4 rounded-md text-sm font-medium">
+                            Visitar
+                        </a>
+                    </div>
+                `;
+                scratchLinksListDiv.innerHTML += linkElement;
+            });
+        }
+
+        // --- Initial Load and Intervals ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000); // Update time every second
+            fetchDashboardData(); // Load public data immediately
+        });
+    </script>
+</body>
+</html>
